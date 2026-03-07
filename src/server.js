@@ -60,6 +60,44 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'MotoGrup API çalışıyor! 🏍️', env: process.env.NODE_ENV });
 });
 
+// Seed endpoint (geçici - production'da kaldırılmalı)
+app.get('/api/seed', async (req, res) => {
+  try {
+    const User = require('./models/User');
+    const Event = require('./models/Event');
+    const { Post, Lesson, Announcement } = require('./models/index');
+    
+    // Clear existing data
+    await Promise.all([User.deleteMany(), Event.deleteMany(), Post.deleteMany(), Lesson.deleteMany(), Announcement.deleteMany()]);
+    
+    // Drop indexes
+    try {
+      await User.collection.dropIndexes();
+    } catch (e) {}
+    
+    // Create seed data (sadece admin)
+    const admin = await User.create({
+      email: 'admin@motogrup.com',
+      password: 'Admin123!',
+      firstName: 'Mehmet',
+      lastName: 'Yılmaz',
+      nickname: 'TURBO',
+      role: 'admin',
+      birthDate: new Date('1985-06-15'),
+      phone: '0532 111 2233',
+      bloodType: 'A+',
+      motorcycle: { brand: 'Harley-Davidson', model: 'Fat Boy', plate: '34 TRB 01', year: 2020, type: 'Cruiser' },
+      experienceLevel: 'Uzman',
+      interests: ['Tur', 'Cruise', 'Modifikasyon'],
+      stats: { totalKm: 45000, totalEvents: 87, totalPhotos: 234, totalBadges: 8 }
+    });
+    
+    res.json({ success: true, message: 'Seed data yüklendi! Admin: admin@motogrup.com / Admin123!' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 404
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Endpoint bulunamadı.' });
