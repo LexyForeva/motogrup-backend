@@ -54,6 +54,7 @@ app.use('/api/riding', require('./routes/riding'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/badges', require('./routes/badges'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/weather', require('./routes/weather'));
 
 // Health check
 app.get('/api/health', (req, res) => {

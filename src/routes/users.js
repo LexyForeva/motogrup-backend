@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
 const User = require('../models/User');
+const { uploadProfile, uploadToCloudinary } = require('../config/cloudinary');
 
 // GET /api/users/profile/:id
 router.get('/profile/:id', protect, async (req, res) => {
@@ -32,6 +33,27 @@ router.put('/profile', protect, async (req, res) => {
     const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true, runValidators: true })
       .select('-password -refreshToken -tcNo');
     res.json({ success: true, data: user, message: 'Profil güncellendi.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/users/upload-avatar
+router.post('/upload-avatar', protect, uploadProfile.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Dosya yüklenmedi.' });
+    }
+
+    const avatarUrl = await uploadToCloudinary(req.file.buffer, 'profiles', 'image');
+    
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { avatar: avatarUrl },
+      { new: true }
+    ).select('-password -refreshToken -tcNo');
+
+    res.json({ success: true, data: user, avatarUrl, message: 'Profil fotoğrafı güncellendi!' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

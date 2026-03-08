@@ -3,6 +3,7 @@ const router = express.Router();
 const { protect } = require('../middleware/auth');
 const { Post, Notification } = require('../models/index');
 const User = require('../models/User');
+const { uploadPost, uploadToCloudinary } = require('../config/cloudinary');
 
 router.get('/', protect, async (req, res) => {
   try {
@@ -32,6 +33,25 @@ router.post('/', protect, async (req, res) => {
     }
     const populated = await post.populate('author', 'firstName lastName nickname avatar memberNumber motorcycle');
     res.status(201).json({ success: true, data: populated });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/posts/upload-media
+router.post('/upload-media', protect, uploadPost.array('media', 4), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, message: 'Dosya yüklenmedi.' });
+    }
+
+    const uploadPromises = req.files.map(file => {
+      const resourceType = file.mimetype.startsWith('video/') ? 'video' : 'image';
+      return uploadToCloudinary(file.buffer, 'posts', resourceType);
+    });
+
+    const urls = await Promise.all(uploadPromises);
+    res.json({ success: true, urls, message: 'Medya yüklendi!' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
